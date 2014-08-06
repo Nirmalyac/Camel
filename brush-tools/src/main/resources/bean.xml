@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:camel="http://camel.apache.org/schema/spring"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jms="http://www.springframework.org/schema/jms" xmlns:amq="http://activemq.apache.org/schema/core"
+	xsi:schemaLocation="
+         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+         http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd 
+         http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms.xsd
+         http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+
+
+
+	<!-- Embedded ActiveMQ Broker -->
+	<amq:broker id="broker" useJmx="false" persistent="false">
+		<amq:transportConnectors>
+			<amq:transportConnector uri="tcp://localhost:0" />
+		</amq:transportConnectors>
+	</amq:broker>
+
+	<!-- ActiveMQ Destination -->
+	<amq:queue id="destination" physicalName="queue1" />
+	<amq:queue id="destination2" physicalName="queue2" />
+
+	<!-- JMS ConnectionFactory to use, configuring the embedded broker using 
+		XML -->
+	<amq:connectionFactory id="jmsFactory" brokerURL="vm://localhost" />
+
+	<!-- JMS Producer Configuration -->
+    <bean id="jmsProducerConnectionFactory" 
+          class="org.springframework.jms.connection.SingleConnectionFactory"
+          depends-on="broker"
+          p:targetConnectionFactory-ref="jmsFactory" />
+
+    <bean id="jmsProducerTemplate" class="org.springframework.jms.core.JmsTemplate"
+          p:connectionFactory-ref="jmsProducerConnectionFactory"
+          p:defaultDestination-ref="destination" />
+
+
+	<camelContext xmlns="http://camel.apache.org/schema/spring">
+
+		<!-- <route id="file">
+			<from
+				uri="file://d:/workspaces/test/tools/brush-tools/src/main/resources?fileName=data.txt" />
+			<camel:convertBodyTo type="String"></camel:convertBodyTo>
+			<to uri="jms:queue:queue1" />
+		</route> -->
+
+		<route id="queue">
+			<from uri="jms:queue:queue1" />
+			<camel:convertBodyTo type="String"/>
+			<to uri="stream:out" />
+		</route>
+		
+
+	</camelContext>
+	<camel:camelContext id="camel-client">
+		<camel:template id="camelTemplate" />
+	</camel:camelContext>
+	<bean id="jms" class="org.apache.activemq.camel.component.ActiveMQComponent">
+		<property name="brokerURL" value="vm://localhost" />
+	</bean>
+	<bean id="basic" class="my.tools.bean.Basic">
+		<property name="name" value="Any Name" />
+	</bean>
+</beans>
